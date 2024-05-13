@@ -18,7 +18,7 @@ public class RequestHandler {
     public RequestHandler(Socket clientSocket, LRUCache cache) {
         this.clientSocket = clientSocket;
         this.cache = cache;
-        this.blockedSites = loadBlockedSitesFromFile("blocked_sites.txt");
+        this.blockedSites = loadBlockedSitesFromFile("blocked-sites.txt");
     }
 
     public void serve() {
@@ -28,7 +28,7 @@ public class RequestHandler {
             StringBuilder requestBuilder = new StringBuilder();
             String line;
             while ((line = in.readLine()) != null && !line.isEmpty()) {
-                if (isAllowedHeader(line)) {
+                if (!isUnwantedHeader(line)) {
                     requestBuilder.append(line).append("\r\n");
                     if (line.startsWith("Host")) {
                         requestBuilder.append("Connection: close\r\n");
@@ -144,16 +144,16 @@ public class RequestHandler {
     }
 
 
-    private boolean isAllowedHeader(String header) {
-        for (String allowedHeader : ALLOWED_HEADERS) {
-            if (header.startsWith(allowedHeader)) {
+    private boolean isUnwantedHeader(String header) {
+        for (String unwantedHeader : UNWANTED_HEADERS) {
+            if (header.startsWith(unwantedHeader)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static final List<String> ALLOWED_HEADERS = List.of("GET", "POST", "PUT", "DELETE", "Host", "Content-Type", "Content-Length");
+    private static final List<String> UNWANTED_HEADERS = List.of("Accept", "User-Agent", "Proxy-Connection");
 
     private void closeConnection() {
         try {
