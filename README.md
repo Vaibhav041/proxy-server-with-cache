@@ -1,5 +1,5 @@
 # Proxy Server with Cache
-This is a simple Java proxy server implementation that intercepts HTTP requests from clients, forwards them to remote servers, and caches the responses. The proxy server also supports blocking specific websites and setting expiration times for cached responses.
+This is a MultiThreaded Java proxy server implementation that intercepts HTTP requests from clients, forwards them to remote servers, and caches the responses. The proxy server also supports blocking specific websites and setting expiration times for cached responses.
 
 ## Features
 * HTTP Proxy Server: Listens for incoming HTTP requests from clients and forwards them to remote servers.
