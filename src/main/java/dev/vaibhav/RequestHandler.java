@@ -171,19 +171,18 @@ public class RequestHandler {
         String[] requestParts = request.split("\r\n");
         String r = requestParts[0];
 
-        PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+        try(PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+            if (r.startsWith("CONNECT")) {
+                sendErrorResponse(out, 503, "Not implemented");
+                throw new RuntimeException("Not implemented");
+            }
 
-        if (r.startsWith("CONNECT")) {
-            sendErrorResponse(out, 503, "Not implemented");
-            throw new RuntimeException("Not implemented");
+            if (!r.startsWith("GET") && !r.startsWith("POST") && !r.startsWith("PUT") && !r.startsWith("DELETE")) {
+                sendErrorResponse(out, 400, "Bad request");
+                throw new RuntimeException("Bad request");
+            }
         }
 
-        if (!r.startsWith("GET") && !r.startsWith("POST") && !r.startsWith("PUT") && !r.startsWith("DELETE")) {
-            sendErrorResponse(out, 400, "Bad request");
-            throw new RuntimeException("Bad request");
-        }
-
-        out.close();
     }
 
     private Set<String> loadBlockedSitesFromFile(String fileName) {
