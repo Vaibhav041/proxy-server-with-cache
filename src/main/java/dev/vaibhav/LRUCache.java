@@ -2,6 +2,7 @@ package dev.vaibhav;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class LRUCache {
     private final Node head;
@@ -9,6 +10,7 @@ public class LRUCache {
     private final int capacity;
     private final Map<String, Node> map;
     private final long expiration;
+    private final ReentrantLock mutex;
 
     public LRUCache(int capacity, long expiration) {
         this.capacity = capacity;
@@ -18,30 +20,41 @@ public class LRUCache {
         map = new ConcurrentHashMap<>();
         head.next = tail;
         tail.prev = head;
+        mutex = new ReentrantLock();
     }
 
-    public synchronized String get(String address) {
-        if (map.containsKey(address)) {
-            Node node = map.get(address);
-            if (isExpired(node)) {
+    public String get(String address) {
+        mutex.lock();
+        try {
+            if (map.containsKey(address)) {
+                Node node = map.get(address);
+                if (isExpired(node)) {
+                    remove(node);
+                    return null;
+                }
                 remove(node);
-                return null;
+                add(node);
+                return node.data;
             }
-            remove(node);
-            add(node);
-            return node.data;
+            return null;
+        } finally {
+            mutex.unlock();
         }
-        return null;
     }
 
-    public synchronized void put(String address, String data) {
-        if (map.containsKey(address)) {
-            remove(map.get(address));
+    public void put(String address, String data) {
+        mutex.lock();
+        try {
+            if (map.containsKey(address)) {
+                remove(map.get(address));
+            }
+            if (map.size() == capacity) {
+                remove(tail.prev);
+            }
+            add(new Node(address, data));
+        } finally {
+            mutex.unlock();
         }
-        if (map.size() == capacity) {
-            remove(tail.prev);
-        }
-        add(new Node(address, data));
     }
 
     private void add(Node node) {

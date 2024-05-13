@@ -1,0 +1,4 @@
+blocked.com
+blockeddomain.com
+malware.com
+adultsite.com

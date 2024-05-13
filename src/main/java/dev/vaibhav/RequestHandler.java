@@ -18,10 +18,7 @@ public class RequestHandler {
     public RequestHandler(Socket clientSocket, LRUCache cache) {
         this.clientSocket = clientSocket;
         this.cache = cache;
-        this.blockedSites = new HashSet<>();
-
-        blockedSites.add("blocked.com");
-        blockedSites.add("blockeddomain.com");
+        this.blockedSites = loadBlockedSitesFromFile("blocked_sites.txt");
     }
 
     public void serve() {
@@ -31,10 +28,6 @@ public class RequestHandler {
             StringBuilder requestBuilder = new StringBuilder();
             String line;
             while ((line = in.readLine()) != null && !line.isEmpty()) {
-                if (line.startsWith("CONNECT")) {
-                    sendErrorResponse(out, 503, "Not implemented");
-                    throw new RuntimeException("Not implemented");
-                }
                 if (isAllowedHeader(line)) {
                     requestBuilder.append(line).append("\r\n");
                     if (line.startsWith("Host")) {
@@ -49,7 +42,10 @@ public class RequestHandler {
                 in.read(bodyBuffer, 0, contentLength);
                 requestBuilder.append(bodyBuffer);
             }
-            System.out.println(requestBuilder);
+            System.out.println("request from client: " + requestBuilder);
+
+            validateRequest(requestBuilder.toString());
+
             String response = handleRemoteRequest(requestBuilder.toString());
             out.println(response);
             out.close();
@@ -169,5 +165,43 @@ public class RequestHandler {
 
     private boolean isSiteBlocked(String host) {
         return blockedSites.contains(host);
+    }
+
+    private void validateRequest(String request) throws Exception {
+        String[] requestParts = request.split("\r\n");
+        String r = requestParts[0];
+
+        PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+
+        if (r.startsWith("CONNECT")) {
+            sendErrorResponse(out, 503, "Not implemented");
+            throw new RuntimeException("Not implemented");
+        }
+
+        if (!r.startsWith("GET") && !r.startsWith("POST") && !r.startsWith("PUT") && !r.startsWith("DELETE")) {
+            sendErrorResponse(out, 400, "Bad request");
+            throw new RuntimeException("Bad request");
+        }
+
+        out.close();
+    }
+
+    private Set<String> loadBlockedSitesFromFile(String fileName) {
+        Set<String> blockedSitesSet = new HashSet<>();
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(fileName);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (!line.isEmpty()) {
+                    blockedSitesSet.add(line);
+                }
+            }
+
+        } catch (IOException e) {
+            System.err.println("Failed to load blocked sites from file: " + fileName);
+        }
+        return blockedSitesSet;
     }
 }
